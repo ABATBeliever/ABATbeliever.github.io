@@ -1,0 +1,51 @@
+@echo off
+title CatGPT Stable
+cls
+echo.
+echo CatGPT Stable
+echo.
+echo こんにちは！CatGPTは猫型人工無能です！
+echo なんでも質問してくださいね～
+echo.
+echo.
+goto main
+:main
+set question=empty
+set /p question="質問を入力:"
+if %question% == empty (goto main)
+echo.
+echo □応答を停止して
+timeout 2 >>nul
+echo.
+echo %question%を検索してるにゃー
+timeout 3 >>nul
+echo.
+echo 回答を生成してるにゃー
+timeout 2 >>nul
+echo.
+echo.
+echo こんにちは。
+timeout 1 >>nul
+echo.
+echo %question%についてしりたいのん?
+timeout 0 >>nul
+echo %question%ってなに?年収は?彼女はいるの?
+echo 調べてみたにゃー！
+echo 気に入ってくれると嬉しいにゃー
+echo.
+echo ｽﾎﾟﾝｻｰﾘﾝｸ
+timeout 0 >>nul
+echo.
+echo 結論:わかんなかったにゃー
+echo.
+echo いかがでしたか?
+echo.
+timeout 0 >>nul
+echo.
+timeout 1 >>nul
+echo 参考:softpedia.com google.com google.com gigazine.net www.yahoo.co.jp www.baidu.com
+echo.
+timeout 0 >>nul
+echo CatGPTを評価するにはこちら→here
+echo.
+goto main
