@@ -39,6 +39,7 @@
         <div id="message"></div>
         <div class="link-container" id="link-container"></div>
     </div>
+    <p>WindowsXP・Vista、互換モードは1.4.xまでのサポートです</p>
 
     <script>
         // URLのフラグメントを取得し、#を削除
@@ -49,12 +50,12 @@
 
         // 数値を比較
         if (!isNaN(versionNumber)) {
-            if (versionNumber >= 3142) {
+            if (versionNumber >= 3143) {
                 // 以上の場合の処理
                 document.getElementById("message").innerText = "お使いのバージョンは最新です-Your Version is the newest.";
             } else {
                 // 未満の場合の処理
-                document.getElementById("message").innerText = "お使いのバージョンはサポートが終了しています-Your Version is old.";
+                document.getElementById("message").innerText = "あたらしいバージョンがあります-A new version is available.";
                 var linkContainer = document.getElementById("link-container");
                 var link = document.createElement("a");
                 link.href = "https://abatbeliever.github.io/InternetStroller/update/getLatest.htm"; // 最新版へのリンクURLをここに設定
