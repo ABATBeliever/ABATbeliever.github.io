@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternetStroller Downloads</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 20px;
+        }
+
+        #header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #navigation {
+            background-color: #090;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #content {
+            margin-top: 20px;
+        }
+
+        article {
+            background-color: #fff;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        article h2 {
+            color: #333;
+        }
+
+        article p {
+            color: #555;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>Download InternetStroller</h1>
+    </div>
+
+    <div id="navigation">
+        <a href="index.html">Home</a> | <a>Download</a> | <a href="#">Documents</a>
+    </div>
+
+    <div id="top">
+	<h2>Download Latest "Memoria"</h2>
+    </div>
+
+    <div id="updatejs"></div>
+
+    <div id="content">
+        <article>
+            <h2>Latest [Stable] - Memoria 1.5.1.0</h2>
+            <p>HSP3.6 , WebView2 , IScript</p>
+            <p>https://github.com/ABATBeliever/InternetStroller_Project4_Memoria_WebBrowser/releases/tag/%231.5.1.0_Stable</p>
+        </article>
+
+        <article>
+            <h2>Legacy for XP- 8.1 [Compatible(IE7)] - Memoria 1.4.3.0</h2>
+            <p>HSP3.6 , IE7-WebView2</p>
+            <p>※No Support.</p>
+        </article>
+    </div>
+
+    <div id="last">
+	<a href="https://github.com/ABATbeliever/InternetStroller_Project1_Rubbish">Rubbish(0)</a>
+	<a href="https://github.com/ABATbeliever/InternetStroller_Project2_Unlabeled">Unlabeled(1)</a>
+	<a href="https://github.com/ABATbeliever/InternetStroller_Project3_ISforXP">forXP(2)</a>
+    </div>
+
+<script>
+  var hash = window.location.hash.substring(1);
+
+  if (hash === "3151") {
+    document.getElementById("updatejs").innerHTML = "<br><br><h2>あなたのバージョンは現在サポート中です。最新版です。<br>Your version is currently supported. It's the latest version.<br><br></h2>";
+  } else if (hash === "3150") {
+    document.getElementById("updatejs").innerHTML = "<br><br><h2>あなたのバージョンは現在サポート中です。しかし最新版ではありません。<br>Your version is currently supported. However, it's not the latest version.<br><br></h2>";
+  } else if (hash === "") {
+    document.getElementById("updatejs").innerHTML = ""
+  } else {
+    document.getElementById("updatejs").innerHTML = "<br><br><h2>あなたのバージョンは現在サポート対象外です。更新しましょう。<br>バイナリを書き換えるだけで、データや設定は引き継げます。<br>Your version is currently not supported. Let's update it.<br>Simply rewrite the binary and your data and settings will be carried over.</h2><br><br>";
+  }
+</script>
+
+</body>
+</html>
+</body>
+</html>
