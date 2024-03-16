@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スタートページ-Start Page</title>
+    <title>NewTab</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
             background-color: #f5f5f5;
         }
+
         .search-container {
             text-align: center;
             padding: 30px;
@@ -22,14 +24,16 @@
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0);
             display: inline-block;
         }
+
         .search-input {
             width: 90%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
+
         .search-button {
-            background-color: #007bff;
+            background-color: #007BFF;
             color: white;
             border: none;
             border-radius: 5px;
@@ -37,21 +41,102 @@
             margin-top: 10px;
             cursor: pointer;
         }
+
         .search-button:hover {
-            background-color: #0056b3;
+            background-color: #0056B3;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            display: none;
+            margin: 20px auto;
+        }
+
+        #scoreDisplay {
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        #uploadContainer {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        input[type="file"] {
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 200px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #online-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+        }
+
+        #gameLink {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-
     <div class="search-container">
-        <input type="text" class="search-input" placeholder="Internet Stroller WebSearch">
+        <input type="text" class="search-input" placeholder="Internet Stroller Memoria">
         <button class="search-button" onclick="search('bing')">Microsoft Bing</button>
         <button class="search-button" onclick="search('google')">Google</button>
         <button class="search-button" onclick="search('duckduckgo')">DuckDuckGo</button>
     </div>
 
+    <div id="online-status"></div>
+
+    <div id="gameLink" onclick="showGame()">Game</div>
+
+    <canvas id="gameCanvas" width="500" height="250"></canvas>
+    <div id="scoreDisplay"></div>
+    <div id="uploadContainer">
+        <input type="file" id="playerImageInput" accept="image/*">
+        <label for="playerImageInput">Your Skin</label>
+        <br>
+        <input type="file" id="enemyImageInput" accept="image/*">
+        <label for="enemyImageInput">Enemy Skin</label>
+        <br>
+        <a>←:Move Left________→:Move Right________z:Barrage</a><br>
+        <button id="startButton">Start</button>
+    </div>
+
     <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const playerImageInput = document.getElementById('playerImageInput');
+        const enemyImageInput = document.getElementById('enemyImageInput');
+        const startButton = document.getElementById('startButton');
+        const uploadContainer = document.getElementById('uploadContainer');
+        const onlineStatusDiv = document.getElementById('online-status');
+
+        let playerImage, enemyImage;
+        let playerX = canvas.width / 2;
+        let playerY = canvas.height - 20;
+        const playerRadius = 10;
+        let bullets = [];
+        let playerBullets = [];
+        let killCount = 0;
+        let startTime;
+        let gameOver = false;
+        let leftPressed = false;
+        let rightPressed = false;
+        let zPressed = false;
+
         function search(engine) {
             const searchInput = document.querySelector('.search-input').value;
             let url;
@@ -66,6 +151,180 @@
 
             window.location.href = url;
         }
+
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                onlineStatusDiv.textContent = 'ONLINE';
+                onlineStatusDiv.style.color = 'green';
+            } else {
+                onlineStatusDiv.textContent = 'OFFLINE';
+                onlineStatusDiv.style.color = 'red';
+            }
+        }
+
+        function showGame() {
+            const gameElements = document.querySelectorAll('#gameCanvas, #scoreDisplay, #uploadContainer');
+            gameElements.forEach(element => element.style.display = 'block');
+            const searchContainer = document.querySelector('.search-container');
+            searchContainer.style.display = 'none';
+            document.getElementById('gameLink').style.display = 'none';
+        }
+
+        updateOnlineStatus();
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        playerImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                playerImage = new Image();
+                playerImage.src = URL.createObjectURL(file);
+                playerImage.onload = function() {
+                    URL.revokeObjectURL(this.src);
+                }
+            } else {
+                playerImage = null;
+            }
+        });
+
+        enemyImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                enemyImage = new Image();
+                enemyImage.src = URL.createObjectURL(file);
+                enemyImage.onload = function() {
+                    URL.revokeObjectURL(this.src);
+                }
+            } else {
+                enemyImage = null;
+            }
+        });
+
+        startButton.addEventListener('click', function() {
+            startGame();
+        });
+
+        function startGame() {
+            uploadContainer.remove();
+            gameLoop();
+        }
+
+        function gameLoop(timestamp) {
+            if (!startTime) {
+                startTime = timestamp;
+            }
+            const elapsedTime = timestamp - startTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (playerImage) {
+                ctx.drawImage(playerImage, playerX - playerRadius, playerY - playerRadius, playerRadius * 2, playerRadius * 2);
+            } else {
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            for (let i = 0; i < bullets.length; i++) {
+                const bullet = bullets[i];
+                if (enemyImage) {
+                    ctx.drawImage(enemyImage, bullet.x - 15, bullet.y - 15, 30, 30);
+                } else {
+                    ctx.fillRect(bullet.x, bullet.y, 10, 10);
+                }
+                bullet.y += 5;
+
+                if (bullet.y > canvas.height) {
+                    bullets.splice(i, 1);
+                    i--;
+                }
+            }
+
+            for (let i = 0; i < playerBullets.length; i++) {
+                const bullet = playerBullets[i];
+                ctx.fillRect(bullet.x, bullet.y, 10, 10);
+                bullet.y -= 10;
+
+                if (bullet.y < 0) {
+                    playerBullets.splice(i, 1);
+                    i--;
+                }
+
+                for (let j = 0; j < bullets.length; j++) {
+                    const enemy = bullets[j];
+                    if (
+                        bullet.x < enemy.x + 30 &&
+                        bullet.x + 10 > enemy.x - 15 &&
+                        bullet.y < enemy.y + 30 &&
+                        bullet.y + 10 > enemy.y - 15
+                    ) {
+                        bullets.splice(j, 1);
+                        playerBullets.splice(i, 1);
+                        killCount++;
+                        j--;
+                        i--;
+                        break;
+                    }
+                }
+            }
+
+            if (Math.random() < 0.01) {
+                bullets.push({
+                    x: Math.random() * (canvas.width - 30),
+                    y: 0
+                });
+            }
+
+            for (const bullet of bullets) {
+                if (
+                    bullet.x < playerX + playerRadius &&
+                    bullet.x > playerX - playerRadius &&
+                    bullet.y < playerY + playerRadius &&
+                    bullet.y > playerY - playerRadius
+                ) {
+                    gameOver = true;
+                    break;
+                }
+            }
+
+            if (!gameOver) {
+                if (leftPressed && playerX > 0) {
+                    playerX -= 7;
+                }
+                if (rightPressed && playerX < canvas.width - 20) {
+                    playerX += 7;
+                }
+
+                scoreDisplay.textContent = `Run Time: ${Math.floor(elapsedTime / 1000)}sec/ Kill Count: ${killCount}`;
+                requestAnimationFrame(gameLoop);
+            } else {
+                scoreDisplay.textContent = `GameOver!/ Run Time: ${Math.floor(elapsedTime / 1000)}sec/ Kill Count: ${killCount}/ Press F5 to Return`;
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                leftPressed = true;
+            } else if (event.key === 'ArrowRight') {
+                rightPressed = true;
+            } else if (event.key === 'z') {
+                zPressed = true;
+                playerBullets.push({
+                    x: playerX,
+                    y: playerY - playerRadius
+                });
+            }
+        });
+
+        document.addEventListener('keyup', function(event) {
+            if (event.key === 'ArrowLeft') {
+                leftPressed = false;
+            } else if (event.key === 'ArrowRight') {
+                rightPressed = false;
+            } else if (event.key === 'z') {
+                zPressed = false;
+            }
+        });
     </script>
 </body>
 </html>
