@@ -36,40 +36,9 @@
 </head>
 <body>
     <div class="message-container">
-        <div id="message"></div>
+        <div id="message"><a>あなたの使用しているバージョンは古いです。もしも1.5.2.0以降で表示されている場合は、iniをリセットしてください。<br>The version you are using is out of date. If you are seeing 1.5.2.0 or later, please reset your ini.<br></a>
+        <a href="https://github.com/ABATBeliever/InternetStroller_Project4_Memoria_WebBrowser/releases">Update</a>a</div>
         <div class="link-container" id="link-container"></div>
     </div>
-
-    <script>
-        // URLのフラグメントを取得し、#を削除
-        var fragment = window.location.hash.slice(1);
-
-        // フラグメントを数値に変換
-        var versionNumber = parseInt(fragment);
-
-        // 数値を比較
-        if (!isNaN(versionNumber)) {
-            if (versionNumber >= 3143) {
-                // 以上の場合の処理
-                document.getElementById("message").innerText = "お使いのバージョンは最新です-Your Version is the newest.";
-            } else {
-                // 未満の場合の処理
-                document.getElementById("message").innerText = "あたらしいバージョンがあります-A new version is available.";
-                var linkContainer = document.getElementById("link-container");
-                var link = document.createElement("a");
-                link.href = "https://abatbeliever.github.io/InternetStroller/update/getLatest.htm"; // 最新版へのリンクURLをここに設定
-                link.innerText = "最新版はこちらから入手できます-Download now"; 
-                linkContainer.appendChild(link);
-            }
-        } else {
-            // フラグメントが数値でない場合の処理
-            document.getElementById("message").innerText = "バージョン確認に失敗しました-Failed to check";
-                var linkContainer = document.getElementById("link-container");
-                var link = document.createElement("a");
-                link.href = "https://abatbeliever.github.io/InternetStroller/update/getLatest.htm";
-                link.innerText = "最新版はこちらから入手できます-Download now"; 
-                linkContainer.appendChild(link);
-        }
-    </script>
 </body>
 </html>
