@@ -1,0 +1,40 @@
+import random
+print('PyAmida\n\nConfig...')
+lines=int(input('選択肢の数>> '))
+vertical=int(input('横線の数>> '))
+length=int(input('長さ>> '))
+linelist=[]
+userlist=[]
+
+
+print('[OK]\n\nOutPut Ramdomize...',end='')
+for i in range(vertical):   #対象
+    check1=random.randint(0,length-1)
+    check2=random.randint(2,lines)
+    check=[check1,check2]
+    if not check in linelist:
+        if not ([check1,(check2-1)] in linelist or [check1,(check2+1)] in linelist):
+            linelist.insert(0,check)
+print(linelist)
+
+print('[OK]\n\nUser Settings...',end='')
+for i in range(lines):
+    userlist.append(i)
+
+print('[OK]\n\nProcessing...\n')#書き換わるy座標,対象
+print(userlist)
+for lengthcount in range(length):
+    for linecount in range(lines):
+        linecount=linecount+1#0排除
+        if [lengthcount,linecount] in linelist:#合致
+            print('┤',end='')
+            tmp=int(userlist[(linecount-1)])
+            userlist[(linecount-1)] = int(userlist[(linecount-2)])
+            userlist[(linecount-2)]=tmp
+        elif [lengthcount,(linecount+1)] in linelist:
+            print('├',end='')
+        else:
+            print('│',end='')
+    print('',lengthcount)
+
+print(userlist,'\n\n[OK]')
