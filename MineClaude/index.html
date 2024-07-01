@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MineClaude</title>
+    <title>MineClaude - Infinite World</title>
     <style>
         body { margin: 0; overflow: hidden; }
         #joystick { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; }
@@ -27,7 +27,6 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const worldSize = 128;
         const blockSize = 1;
         const renderDistance = 16;
         const simplex = new SimplexNoise();
@@ -59,62 +58,34 @@
             }
         }
 
-        function generateTerrain() {
-            for (let x = 0; x < worldSize; x++) {
-                for (let z = 0; z < worldSize; z++) {
-                    const height = Math.floor(simplex.noise2D(x * 0.1, z * 0.1) * 10 + 10);
-                    for (let y = 0; y < height; y++) {
-                        let material;
-                        if (y === height - 1) {
-                            if (height < 8) material = materials.sand;
-                            else if (height > 15) material = materials.snow;
-                            else material = materials.grass;
-                        } else if (y > height - 4) {
-                            material = materials.dirt;
-                        } else {
-                            material = materials.stone;
-                        }
-                        createBlock(x, y, z, material);
-                    }
-                    if (height < 8) {
-                        for (let y = height; y < 8; y++) {
-                            createBlock(x, y, z, materials.water);
-                        }
-                    }
-                }
-            }
-        }
-
         function updateTerrain() {
             const characterPos = character.position;
             const halfRenderDistance = renderDistance / 2;
 
             for (let x = Math.floor(characterPos.x - halfRenderDistance); x < characterPos.x + halfRenderDistance; x++) {
                 for (let z = Math.floor(characterPos.z - halfRenderDistance); z < characterPos.z + halfRenderDistance; z++) {
-                    if (x >= 0 && x < worldSize && z >= 0 && z < worldSize) {
-                        const height = Math.floor(simplex.noise2D(x * 0.1, z * 0.1) * 10 + 10);
-                        for (let y = 0; y < height; y++) {
+                    const height = Math.floor(simplex.noise2D(x * 0.1, z * 0.1) * 10 + 10);
+                    for (let y = 0; y < height; y++) {
+                        const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+                        if (!blocks[key]) {
+                            let material;
+                            if (y === height - 1) {
+                                if (height < 8) material = materials.sand;
+                                else if (height > 15) material = materials.snow;
+                                else material = materials.grass;
+                            } else if (y > height - 4) {
+                                material = materials.dirt;
+                            } else {
+                                material = materials.stone;
+                            }
+                            createBlock(x, y, z, material);
+                        }
+                    }
+                    if (height < 8) {
+                        for (let y = height; y < 8; y++) {
                             const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
                             if (!blocks[key]) {
-                                let material;
-                                if (y === height - 1) {
-                                    if (height < 8) material = materials.sand;
-                                    else if (height > 15) material = materials.snow;
-                                    else material = materials.grass;
-                                } else if (y > height - 4) {
-                                    material = materials.dirt;
-                                } else {
-                                    material = materials.stone;
-                                }
-                                createBlock(x, y, z, material);
-                            }
-                        }
-                        if (height < 8) {
-                            for (let y = height; y < 8; y++) {
-                                const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
-                                if (!blocks[key]) {
-                                    createBlock(x, y, z, materials.water);
-                                }
+                                createBlock(x, y, z, materials.water);
                             }
                         }
                     }
@@ -141,7 +112,7 @@
         const characterGeometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
         const characterMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
         const character = new THREE.Mesh(characterGeometry, characterMaterial);
-        character.position.set(worldSize / 2, 15, worldSize / 2);
+        character.position.set(0, 15, 0);
         scene.add(character);
 
         camera.position.set(character.position.x, character.position.y + 5, character.position.z + 5);
@@ -152,7 +123,7 @@
         let characterVelocity = new THREE.Vector3();
         const moveSpeed = 8;
         let isJumping = false;
-        const jumpForce = 8;
+        const jumpForce = 10;
         const gravity = -9.8;
 
         // Keyboard state
@@ -292,10 +263,27 @@
                 character.position.z = potentialPosition.z;
             }
 
+            const groundCheck = character.position.clone();
+            groundCheck.y -= 1.5; // キャラクターの足元をチェック
+            if (checkCollision(groundCheck.x, groundCheck.y, groundCheck.z)) {
+                isJumping = false;
+                character.position.y = Math.ceil(groundCheck.y) + 1;
+                characterVelocity.y = 0;
+            } else {
+                isJumping = true;
+            }
+
             // Update camera
-            const cameraOffset = new THREE.Vector3(0, 5, 5);
+            const cameraOffset = new THREE.Vector3(0, 2, 5);
+            const cameraTarget = character.position.clone().add(new THREE.Vector3(0, 1, 0));
             camera.position.copy(character.position).add(cameraOffset);
-            camera.lookAt(character.position);
+            camera.lookAt(cameraTarget);
+
+            const raycaster = new THREE.Raycaster(cameraTarget, camera.position.clone().sub(cameraTarget).normalize());
+            const intersects = raycaster.intersectObjects(Object.values(blocks));
+            if (intersects.length > 0 && intersects[0].distance < cameraOffset.length()) {
+                camera.position.copy(intersects[0].point);
+            }
 
             updateTerrain();
             TWEEN.update();
@@ -310,7 +298,7 @@
 
         // Initialize game
         function initGame() {
-            generateTerrain();
+            updateTerrain();
             loadingElement.style.display = 'none';
             requestAnimationFrame(gameLoop);
         }
