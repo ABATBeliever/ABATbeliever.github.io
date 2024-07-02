@@ -76,11 +76,28 @@
         };
 
         const blocks = {};
+        const blockPool = [];
+
+        function getBlockFromPool() {
+            if (blockPool.length > 0) {
+                return blockPool.pop();
+            } else {
+                const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+                return new THREE.Mesh(geometry);
+            }
+        }
+
+        function returnBlockToPool(block) {
+            block.position.set(0, 0, 0);
+            block.scale.set(1, 1, 1);
+            block.updateMatrix();
+            blockPool.push(block);
+        }
 
         // ブロックの作成と削除関数
         function createBlock(x, y, z, material) {
-            const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-            const block = new THREE.Mesh(geometry, material);
+            const block = getBlockFromPool();
+            block.material = material;
             block.position.set(x, y, z);
             scene.add(block);
             blocks[`${Math.round(x)},${Math.round(y)},${Math.round(z)}`] = block;
@@ -90,6 +107,7 @@
             const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
             if (blocks[key]) {
                 scene.remove(blocks[key]);
+                returnBlockToPool(blocks[key]);
                 delete blocks[key];
             }
         }
@@ -141,14 +159,15 @@
             }
 
             // ブロックの削除
+            const maxDistance = Math.max(renderDistanceFront, renderDistanceBack, renderDistanceSide);
             for (let key in blocks) {
                 const [x, y, z] = key.split(',').map(Number);
                 const relativePos = new THREE.Vector3(x - characterPos.x, 0, z - characterPos.z);
-                if (relativePos.dot(characterDir) < 0 && relativePos.length() > renderDistanceBack) {
-                    removeBlock(x, y, z);
-                } else if (relativePos.dot(characterDir) >= 0 && relativePos.length() > renderDistanceFront) {
-                    removeBlock(x, y, z);
-                } else if (Math.abs(x - characterPos.x) > renderDistanceSide) {
+                const distance = relativePos.length();
+                if (distance > maxDistance || 
+                    (relativePos.dot(characterDir) < 0 && distance > renderDistanceBack) ||
+                    (relativePos.dot(characterDir) >= 0 && distance > renderDistanceFront) ||
+                    Math.abs(x - characterPos.x) > renderDistanceSide) {
                     removeBlock(x, y, z);
                 }
             }
@@ -293,7 +312,7 @@
             scene.background = skyColor;
         }
 
-// 座標表示の更新
+        // 座標表示の更新
         function updateCoordinates() {
             const coordElement = document.getElementById('coordinates');
             const x = Math.round(character.position.x * 10) / 10;
@@ -306,6 +325,7 @@
         let lastTime = 0;
         const targetFPS = 60;
         const timeStep = 1000 / targetFPS;
+        let gcCounter = 0;
 
         function gameLoop(currentTime) {
             requestAnimationFrame(gameLoop);
@@ -317,6 +337,14 @@
 
             updateGame(deltaTime);
             render();
+
+            gcCounter++;
+            if (gcCounter > 1000) { // 1000フレームごとに実行
+                gcCounter = 0;
+                if (window.gc) {
+                    window.gc();
+                }
+            }
         }
 
         function updateGame(deltaTime) {
@@ -324,10 +352,10 @@
             updateMoveVectorFromKeyboard();
             updateGameTime(deltaTime);
             updateSkyColor();
-
+  
             characterVelocity.x = moveVector.x * moveSpeed;
             characterVelocity.z = moveVector.z * moveSpeed;
-
+        
             if (isJumping) {
                 characterVelocity.y += gravity * deltaTime;
             }
@@ -379,47 +407,47 @@
 
             updateTerrain();
             TWEEN.update();
-        }
-
-        function render() {
-            renderer.render(scene, camera);
-        }
-
-        // ワールドのリセット
-        function resetWorld() {
-            for (let key in blocks) {
-                scene.remove(blocks[key]);
-                delete blocks[key];
             }
-            simplex = new SimplexNoise(worldSeed);
-            character.position.set(0, 65, 0);
-            updateTerrain();
-        }
 
-        // UI イベントリスナー
-        document.getElementById('set-seed').addEventListener('click', () => {
-            const seedInput = document.getElementById('seed-value');
-            setSeed(seedInput.value);
-        });
+            function render() {
+                renderer.render(scene, camera);
+            }
 
-        document.getElementById('new-seed').addEventListener('click', () => {
-            worldSeed = generateSeed();
+            // ワールドのリセット
+            function resetWorld() {
+                for (let key in blocks) {
+                    scene.remove(blocks[key]);
+                    returnBlockToPool(blocks[key]);
+                    delete blocks[key];
+                }
+                simplex = new SimplexNoise(worldSeed);
+                character.position.set(0, 65, 0);
+                updateTerrain();
+            }
+
+            // UI イベントリスナー
+            document.getElementById('set-seed').addEventListener('click', () => {
+                const seedInput = document.getElementById('seed-value');
+                setSeed(seedInput.value);
+            });
+
+            document.getElementById('new-seed').addEventListener('click', () => {
+                worldSeed = generateSeed();
+                document.getElementById('seed-display').textContent = worldSeed;
+                resetWorld();
+            });
+
+            // 初期化
             document.getElementById('seed-display').textContent = worldSeed;
-            resetWorld();
-        });
+            updateTerrain();
+            requestAnimationFrame(gameLoop);
 
-        // 初期化
-        document.getElementById('seed-display').textContent = worldSeed;
-        updateTerrain();
-        requestAnimationFrame(gameLoop);
-
-        // ウィンドウリサイズ処理
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-    </script>
-</body>
+            // ウィンドウリサイズ処理
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            </script>
+       </body>
 </html>
