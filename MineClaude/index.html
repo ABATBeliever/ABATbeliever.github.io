@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MineClaude v1.5</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #joystick { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; }
+        #jumpBtn { position: absolute; bottom: 20px; right: 20px; width: 80px; height: 80px; background: rgba(255,255,255,0.5); border: none; border-radius: 40px; font-size: 24px; }
+        #loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; justify-content: center; align-items: center; font-size: 24px; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; font-family: Arial; font-size: 16px; background-color: rgba(0,0,0,0.5); padding: 5px; }
+        #seed-input { position: absolute; top: 10px; right: 10px; background-color: rgba(0,0,0,0.5); padding: 10px; color: white; }
+        #seed-input input, #seed-input button { margin: 5px 0; }
+        #current-seed { position: absolute; top: 80px; right: 10px; background-color: rgba(0,0,0,0.5); padding: 5px; color: white; }
+    </style>
+</head>
+<body>
+    <div id="coordinates" style="position: absolute; top: 10px; left: 10px; color: white; font-family: Arial; font-size: 16px; background-color: rgba(0,0,0,0.5); padding: 5px;"></div>
+    <div id="joystick"></div>
+    <div id="coordinates"></div>
+    <button id="jumpBtn">Jump</button>
+
+    <div id="seed-input">
+        <input type="text" id="seed-value" maxlength="6" placeholder="シード値(6桁・0～F)">
+        <button id="set-seed">シード値読み込み</button>
+        <button id="new-seed">新規生成</button>
+    </div>
+    <div id="current-seed">シード値: <span id="seed-display"></span></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+    <script>
+        // Three.js の設定
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // ゲームの定数
+        const blockSize = 1;
+        const renderDistanceFront = 8;
+        const renderDistanceBack = 6;
+        const renderDistanceSide = 10;
+        let gameTime = 6 * 60;
+        const dayLength = 24 * 60;
+
+        // シード値の生成と設定
+        function generateSeed() {
+            return Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase();
+        }
+
+        let worldSeed = generateSeed();
+        let simplex = new SimplexNoise(worldSeed);
+
+        function setSeed(seed) {
+            if (/^[0-9A-F]{6}$/.test(seed)) {
+                worldSeed = seed;
+                document.getElementById('seed-display').textContent = worldSeed;
+                resetWorld();
+            } else {
+                alert('無効な値です。シード値は0～Fの数字の6桁で表現されます。');
+            }
+        }
+
+        // マテリアルとブロックの定義
+        const materials = {
+            grass: new THREE.MeshLambertMaterial({ color: 0x3bab17 }),
+            dirt: new THREE.MeshLambertMaterial({ color: 0x8b4513 }),
+            stone: new THREE.MeshLambertMaterial({ color: 0x808080 }),
+            water: new THREE.MeshLambertMaterial({ color: 0x4040ff, transparent: true, opacity: 0.7 }),
+            sand: new THREE.MeshLambertMaterial({ color: 0xffff00 }),
+            snow: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+        };
+
+        const blocks = {};
+        const blockPool = [];
+
+        function getBlockFromPool() {
+            if (blockPool.length > 0) {
+                return blockPool.pop();
+            } else {
+                const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+                return new THREE.Mesh(geometry);
+            }
+        }
+
+        function returnBlockToPool(block) {
+            block.position.set(0, 0, 0);
+            block.scale.set(1, 1, 1);
+            block.updateMatrix();
+            blockPool.push(block);
+        }
+
+        // ブロックの作成と削除関数
+        function createBlock(x, y, z, material) {
+            const block = getBlockFromPool();
+            block.material = material;
+            block.position.set(x, y, z);
+            scene.add(block);
+            blocks[`${Math.round(x)},${Math.round(y)},${Math.round(z)}`] = block;
+        }
+
+        function removeBlock(x, y, z) {
+            const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+            if (blocks[key]) {
+                scene.remove(blocks[key]);
+                returnBlockToPool(blocks[key]);
+                delete blocks[key];
+            }
+        }
+
+        // 地形生成関数
+        function updateTerrain() {
+            const characterPos = character.position;
+            const characterDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+            for (let x = Math.floor(characterPos.x - renderDistanceSide); x < characterPos.x + renderDistanceSide; x++) {
+                for (let z = Math.floor(characterPos.z - renderDistanceBack); z < characterPos.z + renderDistanceFront; z++) {
+                    const relativePos = new THREE.Vector3(x - characterPos.x, 0, z - characterPos.z);
+                    if (relativePos.dot(characterDir) < 0 && relativePos.length() > renderDistanceBack) continue;
+                    if (relativePos.dot(characterDir) >= 0 && relativePos.length() > renderDistanceFront) continue;
+
+                    const noise1 = simplex.noise2D(x * 0.01, z * 0.01);
+                    const noise2 = simplex.noise2D(x * 0.05, z * 0.05) * 0.5;
+                    
+                    const baseHeight = 67;
+                    const height = Math.floor(baseHeight + noise1 * 20 + noise2 * 10);
+
+                    for (let y = 0; y < height; y++) {
+                        const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+                        if (!blocks[key]) {
+                            let material;
+                            if (y === height - 1) {
+                                if (y < baseHeight - 2) material = materials.sand;
+                                else if (y > baseHeight + 5 && y < baseHeight + 11) material = materials.stone;
+                                else if (y > baseHeight + 10) material = materials.snow;
+                                else material = materials.grass;
+                            } else if (y > height - 4) {
+                                material = materials.dirt;
+                            } else {
+                                material = materials.stone;
+                            }
+                            createBlock(x, y, z, material);
+                        }
+                    }
+                    
+                    const waterLevel = baseHeight - 5;
+                    if (height < waterLevel) {
+                        for (let y = height; y < waterLevel; y++) {
+                            const key = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+                            if (!blocks[key]) {
+                                createBlock(x, y, z, materials.water);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ブロックの削除
+            const maxDistance = Math.max(renderDistanceFront, renderDistanceBack, renderDistanceSide);
+            for (let key in blocks) {
+                const [x, y, z] = key.split(',').map(Number);
+                const relativePos = new THREE.Vector3(x - characterPos.x, 0, z - characterPos.z);
+                const distance = relativePos.length();
+                if (distance > maxDistance || 
+                    (relativePos.dot(characterDir) < 0 && distance > renderDistanceBack) ||
+                    (relativePos.dot(characterDir) >= 0 && distance > renderDistanceFront) ||
+                    Math.abs(x - characterPos.x) > renderDistanceSide) {
+                    removeBlock(x, y, z);
+                }
+            }
+        }
+
+        // キャラクターの作成
+        const characterGeometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+        const characterMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+        const character = new THREE.Mesh(characterGeometry, characterMaterial);
+        character.position.set(0, 70, 0);
+        scene.add(character);
+
+        // カメラの設定
+        camera.position.set(character.position.x, character.position.y + 5, character.position.z + 5);
+        camera.lookAt(character.position);
+
+        // 光源の追加
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // 移動と物理演算の変数
+        let moveVector = new THREE.Vector3();
+        let characterVelocity = new THREE.Vector3();
+        const moveSpeed = 8;
+        let isJumping = false;
+        const jumpForce = 9.8;
+        const gravity = -9.8;
+
+        // キーボード入力の処理
+        const keys = {
+            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+            KeyW: false, KeyS: false, KeyA: false, KeyD: false, Space: false
+        };
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code in keys) {
+                keys[event.code] = true;
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.code in keys) {
+                keys[event.code] = false;
+            }
+        });
+
+        // ジョイスティックの設定
+        const joystick = nipplejs.create({
+            zone: document.getElementById('joystick'),
+            mode: 'static',
+            position: { left: '60px', bottom: '60px' },
+            color: 'white',
+            size: 120
+        });
+
+        let joystickActive = false;
+
+        joystick.on('start', () => {
+            joystickActive = true;
+        });
+
+        joystick.on('move', (evt, data) => {
+            const angle = data.angle.radian;
+            const force = Math.min(data.force, 1);
+            moveVector.x = Math.cos(angle) * force;
+            moveVector.z = -Math.sin(angle) * force;
+        });
+
+        joystick.on('end', () => {
+            joystickActive = false;
+            moveVector.set(0, 0, 0);
+        });
+
+        // ジャンプボタン
+        const jumpBtn = document.getElementById('jumpBtn');
+        jumpBtn.addEventListener('touchstart', jump);
+
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                characterVelocity.y = jumpForce;
+            }
+        }
+
+        // 衝突検出
+        function checkCollision(x, y, z) {
+            const roundX = Math.round(x);
+            const roundY = Math.round(y);
+            const roundZ = Math.round(z);
+            return blocks[`${roundX},${roundY},${roundZ}`] !== undefined;
+        }
+
+        // キーボード入力からの移動ベクトル更新
+        function updateMoveVectorFromKeyboard() {
+            if (joystickActive) return;
+
+            moveVector.set(0, 0, 0);
+            if (keys.ArrowUp || keys.KeyW) moveVector.z -= 1;
+            if (keys.ArrowDown || keys.KeyS) moveVector.z += 1;
+            if (keys.ArrowLeft || keys.KeyA) moveVector.x -= 1;
+            if (keys.ArrowRight || keys.KeyD) moveVector.x += 1;
+            if (moveVector.length() > 0) {
+                moveVector.normalize();
+            }
+        }
+
+        // ゲーム時間の更新
+        function updateGameTime(deltaTime) {
+            gameTime += deltaTime * 10;
+            if (gameTime >= dayLength) {
+                gameTime -= dayLength;
+            }
+        }
+
+        // 時間の文字列表示
+        function getTimeString() {
+            const hours = Math.floor(gameTime / 60);
+            const minutes = Math.floor(gameTime % 60);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        // 空の色更新
+        function updateSkyColor() {
+            let skyColor;
+            if (gameTime >= 4 * 60 && gameTime < 5 * 60) {
+                const t = (gameTime - 4 * 60) / 60;
+                skyColor = new THREE.Color(0x000000).lerp(new THREE.Color(0x87CEEB), t);
+            } else if (gameTime >= 5 * 60 && gameTime < 17 * 60) {
+                skyColor = new THREE.Color(0x87CEEB);
+            } else if (gameTime >= 17 * 60 && gameTime < 19 * 60) {
+                const t = (gameTime - 17 * 60) / 60;
+                skyColor = new THREE.Color(0x87CEEB).lerp(new THREE.Color(0xDD4500), t);
+            } else if (gameTime >= 19 * 60 && gameTime < 23 * 60) {
+                const t = (gameTime - 19 * 60) / 60;
+                skyColor = new THREE.Color(0xDD4500).lerp(new THREE.Color(0x000000), t);
+            } else {
+                skyColor = new THREE.Color(0x000000);
+            }
+            scene.background = skyColor;
+        }
+
+        // 座標表示の更新
+        function updateCoordinates() {
+            const coordElement = document.getElementById('coordinates');
+            const x = Math.round(character.position.x * 10) / 10;
+            const y = Math.round(character.position.y * 10) / 10;
+            const z = Math.round(character.position.z * 10) / 10;
+            coordElement.textContent = `v1.5 / ${getTimeString()} / X: ${x}, Y: ${y}, Z: ${z}`;
+        }
+
+        // ゲームループ
+        let lastTime = 0;
+        const targetFPS = 60;
+        const timeStep = 1000 / targetFPS;
+        let gcCounter = 0;
+
+        function gameLoop(currentTime) {
+            requestAnimationFrame(gameLoop);
+
+            if (currentTime - lastTime < timeStep) return;
+
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            updateGame(deltaTime);
+            render();
+
+            gcCounter++;
+            if (gcCounter > 1000) { // 1000フレームごとに実行
+                gcCounter = 0;
+                if (window.gc) {
+                    window.gc();
+                }
+            }
+        }
+
+        function updateGame(deltaTime) {
+            updateCoordinates();
+            updateMoveVectorFromKeyboard();
+            updateGameTime(deltaTime);
+            updateSkyColor();
+  
+            characterVelocity.x = moveVector.x * moveSpeed;
+            characterVelocity.z = moveVector.z * moveSpeed;
+        
+            if (isJumping) {
+                characterVelocity.y += gravity * deltaTime;
+            }
+
+            if (keys.Space) {
+                jump();
+            }
+
+            if (character.position.y < 0) {
+                character.position.y = 100;
+                characterVelocity.y = 0;
+            }
+
+            const potentialPosition = character.position.clone().add(characterVelocity.clone().multiplyScalar(deltaTime));
+
+            if (!checkCollision(potentialPosition.x, character.position.y, character.position.z)) {
+                character.position.x = potentialPosition.x;
+            }
+            if (!checkCollision(character.position.x, potentialPosition.y, character.position.z)) {
+                character.position.y = potentialPosition.y;
+            } else {
+                characterVelocity.y = 0;
+                isJumping = false;
+            }
+            if (!checkCollision(character.position.x, character.position.y, potentialPosition.z)) {
+                character.position.z = potentialPosition.z;
+            }
+
+            const groundCheck = character.position.clone();
+            groundCheck.y -= 1.5;
+            if (checkCollision(groundCheck.x, groundCheck.y, groundCheck.z)) {
+                isJumping = false;
+                character.position.y = Math.ceil(groundCheck.y) + 1;
+                characterVelocity.y = 0;
+            } else {
+                isJumping = true;
+            }
+
+            const cameraOffset = new THREE.Vector3(0, 2, 5);
+            const cameraTarget = character.position.clone().add(new THREE.Vector3(0, 1, 0));
+            camera.position.copy(character.position).add(cameraOffset);
+            camera.lookAt(cameraTarget);
+
+            const raycaster = new THREE.Raycaster(cameraTarget, camera.position.clone().sub(cameraTarget).normalize());
+            const intersects = raycaster.intersectObjects(Object.values(blocks));
+            if (intersects.length > 0 && intersects[0].distance < cameraOffset.length()) {
+                camera.position.copy(intersects[0].point);
+            }
+
+            updateTerrain();
+            TWEEN.update();
+            }
+
+            function render() {
+                renderer.render(scene, camera);
+            }
+
+            // ワールドのリセット
+            function resetWorld() {
+                for (let key in blocks) {
+                    scene.remove(blocks[key]);
+                    returnBlockToPool(blocks[key]);
+                    delete blocks[key];
+                }
+                simplex = new SimplexNoise(worldSeed);
+                character.position.set(0, 70, 0);
+                updateTerrain();
+            }
+
+            // UI イベントリスナー
+            document.getElementById('set-seed').addEventListener('click', () => {
+                const seedInput = document.getElementById('seed-value');
+                setSeed(seedInput.value);
+            });
+
+            document.getElementById('new-seed').addEventListener('click', () => {
+                worldSeed = generateSeed();
+                document.getElementById('seed-display').textContent = worldSeed;
+                resetWorld();
+            });
+
+            // 初期化
+            document.getElementById('seed-display').textContent = worldSeed;
+            updateTerrain();
+            requestAnimationFrame(gameLoop);
+
+            // ウィンドウリサイズ処理
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            </script>
+       </body>
+</html>
