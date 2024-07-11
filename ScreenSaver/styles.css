@@ -1,0 +1,15 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+#gradient {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, red, yellow, green, cyan, blue, magenta, red);
+    background-size: 200% 200%;
+    transition: background 2s ease-in-out;
+}
