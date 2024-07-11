@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【開発中】見下ろし方ローグライクRPG</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        canvas {
+            border: 1px solid black;
+            max-width: 100%;
+            max-height: 100%;
+        }
+	#joystick {
+	    position: fixed; /* absoluteからfixedに変更 */
+	    bottom: 20px;
+	    left: 20px;
+	    width: 100px;
+	    height: 100px;
+	    background-color: rgba(255, 255, 255, 0.3);
+	    border-radius: 50%;
+	    display: block;
+	    z-index: 1000; /* 追加：他の要素の上に表示されるようにする */
+	}
+        #stick {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            top: 30px;
+            left: 30px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="joystick"><div id="stick"></div></div>
+<div id="mobileControls" style="position: fixed; bottom: 20px; right: 20px; display: none;">
+    <button id="swordButton" style="width: 60px; height: 60px; margin: 5px;">剣</button>
+    <button id="bowButton" style="width: 60px; height: 60px; margin: 5px;">弓</button>
+</div>
+    <script src="./script/enemyTypes.js"></script>
+    <script src="./script/worlds.js"></script>
+    <script src="./script/graphics.js"></script>
+    <script src="./script/input.js"></script>
+    <script src="./script/sound.js"></script>
+    <script src="./script/dungeon.js"></script>
+    <script src="./script/character.js"></script>
+    <script src="./script/game.js"></script>
+    <button id="enableAudio" style="position: fixed; top: 10px; right: 10px; z-index: 1000;">BGMがない時に押すボタン</button>
+</body>
+</html>
