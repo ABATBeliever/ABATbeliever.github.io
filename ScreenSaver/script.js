@@ -11,4 +11,4 @@ function changeGradient() {
     currentColorIndex = (currentColorIndex + 1) % colors.length;
 }
 
-setInterval(changeGradient, 100);
+setInterval(changeGradient, 10);
