@@ -46,7 +46,7 @@ class Player {
                     if (this.level.map[checkX][checkZ] === 1) {
                         const obstacleCenter = new THREE.Vector3(checkX - this.level.size/2 + 0.5, 1, checkZ - this.level.size/2 + 0.5);
                         const distance = position.distanceTo(obstacleCenter);
-                        if (distance < this.radius + 0.5) {
+                        if (distance < this.radius + 0.125) {
                             return true; // 衝突あり
                         }
                     }
