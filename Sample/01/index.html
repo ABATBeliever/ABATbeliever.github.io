@@ -236,7 +236,7 @@
                 const bestMove = validMoves.reduce((max, move) => move.flipped > max.flipped ? move : max);
                 const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
 
-                const selectedMove = Math.random() < 0.5 ? bestMove : randomMove;
+                const selectedMove = Math.random() < 0.875 ? bestMove : randomMove;
                 makeMove(selectedMove.row, selectedMove.col);
             } else {
                 pass();
