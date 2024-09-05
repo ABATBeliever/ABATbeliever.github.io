@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 95-style Workspace</title>
+    <style>
+        body {
+            font-family: 'MS Sans Serif', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #008080;
+            overflow: hidden;
+            user-select: none;
+        }
+        .taskbar {
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            color: black;
+            padding: 2px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        .start-button {
+            background-color: #c0c0c0;
+            border: outset 2px;
+            padding: 2px 5px;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .start-button.active {
+            border: inset 2px;
+        }
+        .start-menu {
+            position: fixed;
+            bottom: 28px;
+            left: 2px;
+            width: 200px;
+            background-color: #c0c0c0;
+            border: outset 2px;
+            display: none;
+            z-index: 1001;
+        }
+        .start-menu-item {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .start-menu-item:hover {
+            background-color: #000080;
+            color: white;
+        }
+        .window {
+            position: absolute;
+            background-color: #c0c0c0;
+            border: outset 2px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            min-width: 300px;
+            min-height: 200px;
+        }
+        .window-header {
+            background-color: #000080;
+            color: white;
+            padding: 2px 5px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .window-content {
+            padding: 10px;
+            height: calc(100% - 50px);
+            overflow: auto;
+        }
+        .close-btn {
+            background-color: #c0c0c0;
+            border: outset 1px;
+            color: black;
+            padding: 0 5px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .app-btn {
+            background-color: #c0c0c0;
+            border: outset 2px;
+            color: black;
+            padding: 2px 10px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        #paint-canvas {
+            background-color: white;
+            border: inset 2px;
+        }
+        .color-picker {
+            margin-right: 10px;
+        }
+        input[type="text"], textarea {
+            background-color: white;
+            border: inset 2px;
+            padding: 2px;
+        }
+        button {
+            background-color: #c0c0c0;
+            border: outset 2px;
+            padding: 2px 5px;
+            margin: 2px;
+            cursor: pointer;
+        }
+        button:active {
+            border: inset 2px;
+        }
+        .clock {
+            padding-right: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <p>This page was created with ClaudeAI<br>Anyone can edit the source code, but the Windows copyright itself goes back to Microsoft.<br>https://ABATBeliever.net</p>
+    <div class="taskbar">
+        <button class="start-button" onclick="toggleStartMenu()">Start</button>
+        <div id="clock" class="clock"></div>
+    </div>
+
+    <div class="start-menu" id="startMenu">
+        <div class="start-menu-item" onclick="createMiniWindow('Notepad')">Notepad</div>
+        <div class="start-menu-item" onclick="createMiniWindow('Calculator')">Calculator</div>
+        <div class="start-menu-item" onclick="createWindow('Paint')">Paint</div>
+        <div class="start-menu-item" onclick="createWindow('Internet Explorer')">Internet Explorer</div>
+        <div class="start-menu-item" onclick="createWindow('Windows Media Player')">Windows Media Player</div>
+    </div>
+
+    <script>
+        let zIndex = 1;
+
+        function toggleStartMenu() {
+            const startMenu = document.getElementById('startMenu');
+            const startButton = document.querySelector('.start-button');
+            if (startMenu.style.display === 'none' || startMenu.style.display === '') {
+                startMenu.style.display = 'block';
+                startButton.classList.add('active');
+            } else {
+                startMenu.style.display = 'none';
+                startButton.classList.remove('active');
+            }
+        }
+
+        function createMiniWindow(appName) {
+            toggleStartMenu();
+            const window = document.createElement('div');
+            window.className = 'window';
+            window.style.top = '50px';
+            window.style.left = '50px';
+            window.style.zIndex = zIndex++;
+            window.style.width = '400px';
+            window.style.height = '300px';
+
+            window.innerHTML = `
+                <div class="window-header">
+                    <span>${appName}</span>
+                    <button class="close-btn" onclick="closeWindow(this)">X</button>
+                </div>
+                <div class="window-content">
+                    ${getAppContent(appName)}
+                </div>
+            `;
+
+            document.body.appendChild(window);
+            makeDraggable(window);
+        }
+
+        function createWindow(appName) {
+            toggleStartMenu();
+            const window = document.createElement('div');
+            window.className = 'window';
+            window.style.top = '50px';
+            window.style.left = '50px';
+            window.style.zIndex = zIndex++;
+            window.style.width = '640px';
+            window.style.height = '480px';
+
+            window.innerHTML = `
+                <div class="window-header">
+                    <span>${appName}</span>
+                    <button class="close-btn" onclick="closeWindow(this)">X</button>
+                </div>
+                <div class="window-content">
+                    ${getAppContent(appName)}
+                </div>
+            `;
+
+            document.body.appendChild(window);
+            makeDraggable(window);
+
+            if (appName === 'Paint') {
+                initPaint(window.querySelector('canvas'));
+            }
+        }
+
+        function getAppContent(appName) {
+            switch(appName) {
+                case 'Notepad':
+                    return `
+                        <textarea id="notepad-text" rows="10" cols="40" style="width: 100%; height: calc(100% - 50px); width:calc(100% - 10px)"></textarea>
+                        <br>
+                        <input type="file" id="load-file" style="display: none;" onchange="loadFile(this)">
+                        <button onclick="document.getElementById('load-file').click()">Load File</button>
+                        <button onclick="saveFile()">Save File</button>
+                    `;
+                case 'Calculator':
+                    return `
+                        <input type="text" id="calc-display" readonly style="width: 100%; margin-bottom: 10px;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                            <button onclick="appendToDisplay('7')">7</button>
+                            <button onclick="appendToDisplay('8')">8</button>
+                            <button onclick="appendToDisplay('9')">9</button>
+                            <button onclick="appendToDisplay('+')">+</button>
+                            <button onclick="appendToDisplay('4')">4</button>
+                            <button onclick="appendToDisplay('5')">5</button>
+                            <button onclick="appendToDisplay('6')">6</button>
+                            <button onclick="appendToDisplay('-')">-</button>
+                            <button onclick="appendToDisplay('1')">1</button>
+                            <button onclick="appendToDisplay('2')">2</button>
+                            <button onclick="appendToDisplay('3')">3</button>
+                            <button onclick="appendToDisplay('*')">*</button>
+                            <button onclick="appendToDisplay('0')">0</button>
+                            <button onclick="appendToDisplay('.')">.</button>
+                            <button onclick="calculate()">=</button>
+                            <button onclick="appendToDisplay('/')">/</button>
+                            <button onclick="clearDisplay()" style="grid-column: span 4;">Clear</button>
+                        </div>
+                    `;
+                case 'Paint':
+                    return `
+                        <canvas id="paint-canvas" width="600" height="380"></canvas>
+                        <div style="margin-top: 10px;">
+                            <input type="color" id="color-picker" class="color-picker">
+                            <button onclick="setPaintTool('pen')">Pen</button>
+                            <button onclick="setPaintTool('eraser')">Eraser</button>
+                            <button onclick="savePaintImage()">Save as BMP</button>
+                        </div>
+                    `;
+                case 'Internet Explorer':
+                    return `
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <button onclick="goBack()">←</button>
+                            <button onclick="goForward()">→</button>
+                            <input type="text" id="ie-url" value="https://abatbeliever.net" style="flex: 1; margin: 0 5px;" />
+                            <button onclick="navigateTo()">Go</button>
+                        </div>
+                        <iframe id="ie-frame" src="https://abatbeliever.net" style="width: 100%; height: calc(100% - 50px); border: none;"></iframe>
+                    `;
+                case 'Windows Media Player':
+                    return `
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <input type="file" style="margin-left: 2px;" onchange="loadMusic(this)" />
+                        </div>
+                        <audio id="media-player" controls style="width: 100%;"></audio>
+                    `;
+                default:
+                    return 'App content not available';
+            }
+        }
+
+        function closeWindow(closeBtn) {
+            closeBtn.closest('.window').remove();
+        }
+
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.querySelector('.window-header').onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+                element.style.zIndex = zIndex++;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        function appendToDisplay(value) {
+            document.getElementById('calc-display').value += value;
+        }
+
+        function clearDisplay() {
+            document.getElementById('calc-display').value = '';
+        }
+
+        function calculate() {
+            try {
+                const result = eval(document.getElementById('calc-display').value);
+                document.getElementById('calc-display').value = result;
+            } catch (error) {
+                document.getElementById('calc-display').value = 'Error';
+            }
+        }
+
+        // Notepad functions
+        function loadFile(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('notepad-text').value = e.target.result;
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function saveFile() {
+            const text = document.getElementById('notepad-text').value;
+            const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'notepad.txt';
+            a.click();
+        }
+
+        // Paint functions
+        let paintTool = 'pen';
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        function initPaint(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const canvas = e.target;
+            const ctx = canvas.getContext('2d');
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            if (paintTool === 'pen') {
+                ctx.strokeStyle = document.getElementById('color-picker').value;
+            } else {
+                ctx.strokeStyle = 'white';
+            }
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function setPaintTool(tool) {
+            paintTool = tool;
+        }
+
+        function savePaintImage() {
+            const canvas = document.getElementById('paint-canvas');
+            const link = document.createElement('a');
+            link.download = 'paint.bmp';
+            link.href = canvas.toDataURL('image/bmp');
+            link.click();
+        }
+
+        // Clock functions
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+        }
+
+        let historyStack = [];
+        let historyIndex = -1;
+
+        function navigateTo(url) {
+            const iframe = document.getElementById('ie-frame');
+            const input = document.getElementById('ie-url');
+            const newUrl = url || input.value;
+            iframe.src = newUrl;
+            if (!url) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+                historyStack.push(newUrl);
+                historyIndex++;
+            }
+        }
+
+        function goBack() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const previousUrl = historyStack[historyIndex];
+                document.getElementById('ie-url').value = previousUrl;
+                navigateTo(previousUrl);
+            }
+        }
+
+        function goForward() {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                const nextUrl = historyStack[historyIndex];
+                document.getElementById('ie-url').value = nextUrl;
+                navigateTo(nextUrl);
+            }
+        }
+
+        let audioElement;
+
+        function loadMusic(input) {
+            const file = input.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audioElement = document.getElementById('media-player');
+                audioElement.src = url;
+                audioElement.play();
+            }
+        }
+
+        function playMusic() {
+            if (audioElement) {
+                audioElement.play();
+            }
+        }
+
+        function pauseMusic() {
+            if (audioElement) {
+                audioElement.pause();
+            }
+        }
+
+        setInterval(updateClock, 1000); // Update every second
+        updateClock(); // Initial call to display clock
+
+        // Close Start menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const startMenu = document.getElementById('startMenu');
+            const startButton = document.querySelector('.start-button');
+            if (!startMenu.contains(event.target) && !startButton.contains(event.target)) {
+                startMenu.style.display = 'none';
+                startButton.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
