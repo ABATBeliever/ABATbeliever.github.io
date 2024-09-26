@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!-- やあ！目が合ったね！ -->
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>もぎったー - TL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            background-color: #f5f8fa;
+            flex-direction: column;
+        }
+
+        /* サイドメニューのスタイル */
+        .sidebar {
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            height: 100vh;
+            padding-top: 20px;
+            position: fixed;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            padding: 15px;
+
+            font-size: 18px;
+        }
+
+        .sidebar ul li:hover {
+            background-color: #444;
+        }
+
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        /* コンテンツのスタイル */
+        .content {
+            margin-left: 200px;
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            /* スマホ対応 */
+            .sidebar {
+                width: 100px;
+            }
+
+            .content {
+                margin-left: 100px;
+                padding: 10px;
+            }
+
+            .sidebar ul li {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+
+        /* タイムラインのスタイル */
+        .tweet {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .tweet strong {
+            font-size: 18px; /* ユーザー名を大きく */
+        }
+
+        .tweet p {
+            font-size: 14px; /* 本文は少し小さく */
+            white-space: pre-line; /* 改行を反映 */
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        /* ツイートのアクションボタンスタイル */
+        .tweet-actions {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+
+        .tweet-actions button {
+            margin-right: 20px;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .tweet-actions button.active i {
+            color: #007bff;
+        }
+
+        .tweet-actions i {
+            font-size: 20px;
+            color: #888;
+            margin-right: 5px;
+        }
+
+        .tweet-actions .count {
+            font-size: 14px;
+            color: black; /* ホバーしていなくても数値は黒 */
+            margin-left: 5px;
+        }
+
+        /* 投稿欄 */
+        .tweet-input {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical; /* 複数行対応 */
+            min-height: 100px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            align-self: flex-end;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 投稿時間のスタイル */
+        .tweet-time {
+            font-size: 12px;
+            color: #777;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <ul>
+            <li><a href="#">ホーム</a></li>
+            <li><a href="./notification.html">通知</a></li>
+            <li><a href="./DM.html">メッセージ</a></li>
+            <li><a href="./Bookmark.html">ブックマーク</a></li>
+            <li><a href="./Config.html">設定</a></li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <h1>もぎったー</h1>
+
+        <div class="tweet-input">
+            <textarea id="tweetInput" placeholder="今何してる？"></textarea>
+            <button onclick="postTweet()">ツイート</button>
+        </div>
+
+        <div id="timeline"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentUserName = urlParams.get('user') || 'ゲストさん【設定から、ユーザ名を設定してください】';
+
+        const users = ['User1', 'User2', 'User3', 'User4', 'User5']; // ユーザー名リスト
+        const tweets = [
+            'Hello World!',
+            '今日はいい天気ですね。',
+            'プログラミングが好きです！',
+            '新しい技術を学んでいます。',
+            'コーヒーを飲んでリラックス。',
+            '最近のニュースについてどう思いますか？'
+        ]; // 発言リスト
+
+        function getRandomPastTime() {
+            const now = new Date();
+            const randomTime = new Date(now.getTime() - Math.floor(Math.random() * (5 * 24 * 60 * 60 * 1000))); 
+            const year = randomTime.getFullYear();
+            const month = ('0' + (randomTime.getMonth() + 1)).slice(-2); 
+            const day = ('0' + randomTime.getDate()).slice(-2);
+            const hours = ('0' + randomTime.getHours()).slice(-2);
+            const minutes = ('0' + randomTime.getMinutes()).slice(-2);
+            return `${year}/${month}/${day} ${hours}:${minutes}`;
+        }
+
+        function getRandomCount_i() {
+            return Math.floor(Math.random() * 1000);
+        }
+        function getRandomCount_r() {
+            return Math.floor(Math.random() * 200);
+        }
+        function getRandomCount_b() {
+            return Math.floor(Math.random() * 30);
+        }
+
+        function generateRandomTL() {
+            const tlElement = document.getElementById('timeline');
+            tlElement.innerHTML = ''; 
+            for (let i = 0; i < 20; i++) {
+                const randomUser = users[Math.floor(Math.random() * users.length)];
+                const randomTweet = tweets[Math.floor(Math.random() * tweets.length)];
+                const randomTime = getRandomPastTime();
+                const tweetElement = document.createElement('div');
+                tweetElement.className = 'tweet';
+                const randomLikeCount = getRandomCount_i();
+                const randomRTCount = getRandomCount_r();
+                const randomBookmarkCount = getRandomCount_b();
+                tweetElement.innerHTML = `
+                    <strong>${randomUser}</strong>
+                    <div class="tweet-time">${randomTime}</div>
+                    <p>${randomTweet}</p>
+                    <div class="tweet-actions">
+                        <button onclick="toggleAction(this, 'like')"><i>❤️</i> <span class="count">${randomLikeCount}</span></button>
+                        <button onclick="toggleAction(this, 'retweet')"><i>🔁</i> <span class="count">${randomRTCount}</span></button>
+                        <button onclick="toggleAction(this, 'bookmark')"><i>🔖</i> <span class="count">${randomBookmarkCount}</span></button>
+                    </div>`;
+                tlElement.appendChild(tweetElement);
+            }
+        }
+
+        function postTweet() {
+            const tweetText = document.getElementById('tweetInput').value;
+            if (tweetText) {
+                const tlElement = document.getElementById('timeline');
+                const tweetElement = document.createElement('div');
+                tweetElement.className = 'tweet';
+                const currentTime = new Date().toISOString().slice(0, 16).replace('T', ' ');
+                tweetElement.innerHTML = `
+                    <strong>${currentUserName}</strong>
+                    <div class="tweet-time">${currentTime}</div>
+                    <p>${tweetText}</p>
+                    <div class="tweet-actions">
+                        <button onclick="toggleAction(this, 'like')"><i>❤️</i> <span class="count">0</span></button>
+                        <button onclick="toggleAction(this, 'retweet')"><i>🔁</i> <span class="count">0</span></button>
+                        <button onclick="toggleAction(this, 'bookmark')"><i>🔖</i> <span class="count">0</span></button>
+                    </div>`;
+                tlElement.prepend(tweetElement);
+                document.getElementById('tweetInput').value = '';
+            }
+        }
+
+        function toggleAction(button, actionType) {
+            const countSpan = button.querySelector('.count');
+            let count = parseInt(countSpan.innerText);
+            if (button.classList.contains('active')) {
+                count -= 1; 
+            } else {
+                count += 1; 
+            }
+            countSpan.innerText = count;
+            button.classList.toggle('active');
+        }
+
+        window.onload = generateRandomTL;
+    </script>
+
+</body>
+</html>
