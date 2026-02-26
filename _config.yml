@@ -1,2 +1,12 @@
-title: Tech Docs by ABATBeliever
+title: ABATBeliever's Tech Site
+description: GithubPages と Jekyllによる技術サイトです。
 theme: minima
+
+author:
+  name: ABATBeliever
+
+minima:
+  skin: auto
+
+header_pages:
+ - [メインサイトに移動](https://abatbeliever.net)
