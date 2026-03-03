@@ -1,0 +1,22 @@
+<meta name="description" content="{{ page.description | default: page.excerpt | strip_html | truncate: 160 }}">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ page.title }}">
+<meta property="og:description" content="{{ page.description | default: page.excerpt | strip_html | truncate: 160 }}">
+<meta property="og:url" content="{{ page.url | absolute_url }}">
+<meta property="og:site_name" content="abatbeliever g">
+
+<!--
+Crawling & indexing information:
+This site generally welcomes indexing and/or analysis.
+See the following resources for details.
+
+robots.txt  → https://g.abatbeliever.net/robots.txt
+llms.txt    → https://g.abatbeliever.net/llms.txt
+sitemap.xml → https://g.abatbeliever.net/sitemap.xml
+
+Raw md data → https://raw.githubusercontent.com/ABATBeliever/ABATbeliever.github.io/refs/heads/main/<path>/<filename>.md
+-->
+
+<link rel="shortcut　icon" href="/_layouts/favicon.ico">
+<link rel="canonical" href="{{ page.url | absolute_url }}">
