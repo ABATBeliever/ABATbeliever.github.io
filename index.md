@@ -1,5 +1,6 @@
 ---
 title: ABATBeliever's Tech Site にようこそ
+description: ABATBeliever's Tech Site is a subdomain site that contains technical documentation.
 ---
 
 GitHub Pages の動作確認中。
