@@ -1,9 +1,3 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
 <meta name="description" content="{{ page.description | default: page.excerpt | strip_html | truncate: 160 }}">
 
 <meta property="og:type" content="article">
@@ -22,15 +16,9 @@ llms.txt    → https://g.abatbeliever.net/llms.txt
 sitemap.xml → https://g.abatbeliever.net/sitemap.xml
 
 Raw md data → https://raw.githubusercontent.com/ABATBeliever/ABATbeliever.github.io/refs/heads/main/<path>/<filename>.md
+
+Powered by GithubPages + Jekyll
 -->
   
 <link rel="canonical" href="{{ page.url | absolute_url }}">
 <link rel="shortcut icon" href="/src/favicon.ico">
-
-<title>{{ page.title }}</title>
-</head>
-
-<body>
-{{ content }}
-</body>
-</html>

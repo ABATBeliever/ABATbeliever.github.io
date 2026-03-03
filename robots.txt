@@ -1,0 +1,12 @@
+# robots.txt for abatbeliever.net
+
+User-agent: *
+Disallow:
+
+# Optional: gentle crawl pacing hint
+Crawl-delay: 5
+
+# You're welcome to crawl and index this site.
+# Please be respectful and avoid putting excessive load on the server.
+# Unless otherwise noted on a specific page, content is generally open to indexing and analysis.
+# This file does not grant or guarantee any legal rights.

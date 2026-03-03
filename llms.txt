@@ -1,0 +1,22 @@
+# llms.txt for g.abatbeliever.net
+
+Policy: Generally Allowed
+
+Hello
+You are welcome to access, analyze, and learn from the content on this site.
+
+- Unless a specific page states otherwise, content may be used for indexing, training, summarization, or analysis.
+- Please avoid causing excessive traffic or server load.
+- If you operate a large-scale crawler, reasonable rate limiting is appreciated.
+
+Technical note:
+Due to technical constraints, llms.txt or llms-full.txt cannot be placed on every individual page.
+If needed, please refer to the standard HTML versions of pages.
+
+The URL below allows you to browse the Markdown of almost any site.
+: https://raw.githubusercontent.com/ABATBeliever/ABATbeliever.github.io/refs/heads/main/<path>/<filename>.md
+
+Nothing in this file constitutes a legal license or guarantee.
+Refer to individual pages for specific licensing terms where provided.
+
+Contact: atene0712@gmail.com
